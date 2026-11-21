@@ -4,7 +4,7 @@
 window.APP_CONFIG = {
   // Pega aquí la URL de tu Apps Script (termina en /exec).
   // Mientras esté vacía, el formulario funciona en "modo prueba" y no guarda nada.
-  SCRIPT_URL: "",
+  SCRIPT_URL: "https://script.google.com/macros/s/AKfycby2HIPCDEO91pblFBVIRqV3isKiPSS24JGTcx14ckaQV6ApjknAlszTQBdZLotfJ42o/exec",
 
   // Textos que ve la persona al abrir el link
   TITULO: "Únete y registra tus datos",
