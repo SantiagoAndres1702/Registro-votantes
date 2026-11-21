@@ -10,6 +10,10 @@ window.APP_CONFIG = {
   TITULO: "Únete y registra tus datos",
   SUBTITULO: "Te toma menos de un minuto. Así te mantenemos informado hasta el día de la votación.",
 
+  // Agradecimiento (arriba del formulario y al terminar el registro)
+  GRACIAS: "¡Gracias por tu apoyo! Tu colaboración hace la diferencia.",
+  GRACIAS_FINAL: "Gracias por sumarte y por tu compromiso. Contamos contigo el día de la votación.",
+
   // Tratamiento de datos (Ley 1581 de 2012). Cambia estos datos por los reales.
   RESPONSABLE: "[Nombre del responsable]",
   CONTACTO: "[WhatsApp o correo de contacto]",

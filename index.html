@@ -20,6 +20,7 @@
     }
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
     font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -53,9 +54,12 @@
     margin-top: 8px; background: var(--soft); color: var(--primary);
     font-size: .95rem; padding: 10px; font-weight: 600;
   }
-  .consent { display: flex; gap: 10px; align-items: flex-start; }
-  .consent input { width: 22px; height: 22px; flex: 0 0 22px; margin-top: 2px; }
-  .consent label { font-weight: 400; font-size: .93rem; }
+  .legal { font-size: .85rem; color: var(--muted); text-align: center; margin: 10px 0 0; }
+  .scan { border: 2px dashed var(--border); border-radius: 12px; padding: 12px; margin-bottom: 18px; text-align: center; }
+  .scan .hint { margin: 8px 0 0; }
+  .btn-scan { background: var(--ok); }
+  .btn-scan:hover { background: var(--ok); filter: brightness(.95); }
+  .thanks { background: var(--soft); border-radius: 12px; padding: 12px; margin-bottom: 14px; font-size: .95rem; }
   details { font-size: .85rem; color: var(--muted); margin-top: 8px; }
   details summary { cursor: pointer; color: var(--primary); }
   .hp { position: absolute; left: -9999px; }
@@ -76,9 +80,15 @@
   </header>
 
   <div class="demo" id="demo">Modo prueba: todavía no está conectada la hoja de Google, los datos no se guardan.</div>
+  <div class="thanks" id="gracias"></div>
   <div class="ref" id="ref" hidden></div>
 
   <form id="form" novalidate autocomplete="on">
+    <div class="scan">
+      <button type="button" class="btn btn-scan" id="escanear">📷 Escanear mi cédula</button>
+      <p class="hint" id="scanHint">Toma una foto del código de barras de atrás de tu cédula amarilla y llenamos tu nombre, cédula y cumpleaños.</p>
+      <input type="file" id="foto" accept="image/*" capture="environment" hidden>
+    </div>
     <div class="field" data-f="cedula">
       <label for="cedula">Cédula</label>
       <input id="cedula" name="cedula" inputmode="numeric" autocomplete="off" placeholder="Solo números" maxlength="10" required>
@@ -147,30 +157,25 @@
 
     <input class="hp" type="text" name="website" id="website" tabindex="-1" autocomplete="off" aria-hidden="true">
 
-    <div class="field" data-f="autoriza">
-      <div class="consent">
-        <input type="checkbox" id="autoriza" name="autoriza" required>
-        <label for="autoriza">Autorizo el tratamiento de mis datos personales según la política descrita abajo.</label>
-      </div>
-      <div class="err">Debes aceptar para poder registrarte.</div>
-      <details>
-        <summary>Ver política de tratamiento de datos</summary>
-        <p id="politica"></p>
-      </details>
-    </div>
-
     <button class="btn" type="submit" id="enviar">Registrarme</button>
+    <p class="legal">Al registrarte autorizas que guardemos tus datos para contactarte sobre la votación (Ley 1581 de 2012).</p>
+    <details>
+      <summary>Ver política de tratamiento de datos</summary>
+      <p id="politica"></p>
+    </details>
     <div class="msg" id="msg"></div>
   </form>
 
   <div class="done" id="done">
-    <h2>¡Gracias por registrarte!</h2>
+    <h2>¡Gracias por tu colaboración! 🙌</h2>
     <p id="doneTxt">Tus datos quedaron guardados. Te estaremos contactando.</p>
+    <p id="doneGracias"></p>
     <button class="btn btn-sec" id="otro" type="button">Registrar a otra persona</button>
   </div>
 </main>
 
 <script src="config.js"></script>
+<script src="escaner.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

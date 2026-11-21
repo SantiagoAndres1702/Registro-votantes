@@ -8,6 +8,9 @@
   $("titulo").textContent = C.TITULO || "Registro";
   document.title = C.TITULO || "Registro";
   $("subtitulo").textContent = C.SUBTITULO || "";
+  $("gracias").textContent = C.GRACIAS || "";
+  $("gracias").hidden = !C.GRACIAS;
+  $("doneGracias").textContent = C.GRACIAS_FINAL || "";
   if (!C.SCRIPT_URL) $("demo").style.display = "block";
   $("politica").textContent =
     "Responsable: " + (C.RESPONSABLE || "el organizador") + ". " +
@@ -63,6 +66,30 @@
     window.open(C.URL_CONSULTA_PUESTO, "_blank", "noopener");
   });
 
+  // ---------- Escanear cédula ----------
+  $("escanear").addEventListener("click", function () { $("foto").value = ""; $("foto").click(); });
+  $("foto").addEventListener("change", function () {
+    var file = $("foto").files && $("foto").files[0];
+    if (!file || !window.Escaner) return;
+    var b = $("escanear");
+    b.disabled = true; b.textContent = "Leyendo la cédula...";
+    window.Escaner.escanear(file).then(function (d) {
+      if (!d) throw new Error("sin datos");
+      $("cedula").value = d.cedula;
+      $("nombre").value = d.nombre;
+      $("cumpleanos").value = d.cumpleanos;
+      ["cedula", "nombre", "cumpleanos"].forEach(function (k) {
+        form.querySelector('[data-f="' + k + '"]').classList.remove("invalid");
+      });
+      $("scanHint").textContent = "¡Listo! Revisa que tus datos estén bien y completa el resto.";
+      $("telefono").focus();
+    }).catch(function () {
+      $("scanHint").textContent = "No pudimos leer el código. Intenta de nuevo con buena luz, que el código de barras salga completo y enfocado, o llena los datos a mano.";
+    }).then(function () {
+      b.disabled = false; b.textContent = "📷 Escanear mi cédula";
+    });
+  });
+
   // ---------- Validación ----------
   function parseFecha(s) {
     var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s || "");
@@ -82,8 +109,7 @@
     telefono: function () { return /^3\d{9}$/.test(digits($("telefono").value)); },
     cumpleanos: function () { return !!parseFecha($("cumpleanos").value); },
     direccion: function () { return $("direccion").value.trim().length >= 5; },
-    genero: function () { return !!$("genero").value; },
-    autoriza: function () { return $("autoriza").checked; }
+    genero: function () { return !!$("genero").value; }
   };
 
   function validar() {
@@ -176,6 +202,7 @@
   $("otro").addEventListener("click", function () {
     form.reset();
     $("generoOtro").hidden = true;
+    $("scanHint").textContent = "Toma una foto del código de barras de atrás de tu cédula amarilla y llenamos tu nombre, cédula y cumpleaños.";
     $("msg").className = "msg";
     $("done").style.display = "none";
     form.style.display = "block";
