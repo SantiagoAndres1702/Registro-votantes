@@ -1,9 +1,15 @@
 /**
  * Backend del formulario de registro.
- * Se pega en: Google Sheet > Extensiones > Apps Script.
+ * Funciona como proyecto independiente en script.google.com (sirve desde el celular):
+ * al ejecutar prepararHoja() se crea la hoja "Registro votantes" en tu Google Drive.
+ * También funciona pegado dentro de una hoja (Extensiones > Apps Script).
  * Guarda cada registro en la pestaña "Registros". Si la cédula ya existe,
  * actualiza esa fila en lugar de duplicarla.
  */
+var NOMBRE_ARCHIVO = 'Registro votantes';
+// Opcional: si quieres usar una hoja que ya existe, pega aquí su ID
+// (el texto largo entre /d/ y /edit en su link). Si lo dejas vacío, se crea una nueva.
+var ID_HOJA = '';
 var HOJA = 'Registros';
 var COLUMNAS = [
   'Fecha de registro', 'Cédula', 'Nombres y apellidos', 'Celular', 'Cumpleaños',
@@ -62,8 +68,22 @@ function doGet() {
   return ContentService.createTextOutput('El formulario está conectado correctamente.');
 }
 
+function obtenerLibro() {
+  if (ID_HOJA) return SpreadsheetApp.openById(ID_HOJA);
+  var activo = SpreadsheetApp.getActiveSpreadsheet && SpreadsheetApp.getActiveSpreadsheet();
+  if (activo) return activo;
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('ID_HOJA');
+  if (id) {
+    try { return SpreadsheetApp.openById(id); } catch (e) { /* se borró: se crea otra */ }
+  }
+  var libro = SpreadsheetApp.create(NOMBRE_ARCHIVO);
+  props.setProperty('ID_HOJA', libro.getId());
+  return libro;
+}
+
 function obtenerHoja() {
-  var libro = SpreadsheetApp.getActiveSpreadsheet();
+  var libro = obtenerLibro();
   var hoja = libro.getSheetByName(HOJA);
   if (!hoja) {
     hoja = libro.insertSheet(HOJA);
@@ -97,7 +117,13 @@ function respuesta(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
-/** Ejecuta esta función una vez desde el editor para crear la pestaña y dar permisos. */
+/**
+ * Ejecuta esta función una vez desde el editor: crea la hoja, da los permisos
+ * y muestra el link de la hoja en el "Registro de ejecución".
+ */
 function prepararHoja() {
-  obtenerHoja();
+  var hoja = obtenerHoja();
+  var vacia = hoja.getParent().getSheetByName('Hoja 1') || hoja.getParent().getSheetByName('Sheet1');
+  if (vacia && hoja.getParent().getSheets().length > 1 && vacia.getLastRow() === 0) hoja.getParent().deleteSheet(vacia);
+  Logger.log('LISTO. Tu hoja de registros está aquí: ' + hoja.getParent().getUrl());
 }

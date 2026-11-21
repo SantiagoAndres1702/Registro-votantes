@@ -5,27 +5,27 @@ Cada registro llega a una Google Sheet que tú administras y compartes con los c
 
 - **Formulario:** `index.html` + `app.js`, publicado gratis con GitHub Pages.
 - **Configuración:** `config.js` (URL del script, textos y datos del responsable).
-- **Backend:** `apps-script/Codigo.gs`, se pega en el Apps Script de tu Google Sheet.
+- **Backend:** `apps-script/Codigo.gs`, un proyecto de Apps Script que crea y llena la hoja en tu Google Drive.
 
 Si una cédula ya está registrada, se actualiza esa fila en lugar de duplicarla.
 
-## Paso a paso para conectar tu Google Sheet (unos 10 minutos, una sola vez)
+## Paso a paso para conectar Google (unos 10 minutos, una sola vez, sirve desde iPhone)
 
-1. Entra a https://sheets.new con tu cuenta de Google. Ponle un nombre a la hoja, por ejemplo **Registro votantes**.
-2. En el menú de arriba: **Extensiones → Apps Script**.
-3. Borra todo lo que aparece en el editor y pega el contenido completo de `apps-script/Codigo.gs`. Dale al ícono de guardar 💾.
-4. Arriba, en la lista de funciones, elige **prepararHoja** y dale **Ejecutar**. Google pedirá permisos:
-   *Revisar permisos → elige tu cuenta → "Configuración avanzada" → "Ir a ... (no seguro)" → Permitir.*
-   (Sale como "no seguro" solo porque el script es tuyo y no está verificado por Google.)
-   Vuelve a la hoja: verás la pestaña **Registros** con los encabezados.
-5. En Apps Script: **Implementar → Nueva implementación**. En el engranaje elige **Aplicación web**.
+1. **Copia el código.** Abre https://raw.githubusercontent.com/SantiagoAndres1702/registro-votantes/main/apps-script/Codigo.gs, toca y mantén sobre el texto → **Seleccionar todo** → **Copiar**.
+2. **Abre Apps Script en modo escritorio.** En Safari entra a https://script.google.com con tu cuenta de Google. Toca el ícono **"aA"** de la barra de direcciones → **Solicitar sitio web de escritorio**.
+3. **Crea el proyecto.** Toca **Nuevo proyecto**. Borra lo que aparece en el editor y pega el código. Toca el ícono de guardar 💾.
+4. **Crea la hoja.** Arriba, en la lista de funciones, elige **prepararHoja** y toca **Ejecutar**. Google pide permisos:
+   *Revisar permisos → tu cuenta → "Configuración avanzada" → "Ir a ... (no seguro)" → Permitir.*
+   (Sale "no seguro" solo porque el script es tuyo y Google no lo ha verificado.)
+   Abajo, en el **Registro de ejecución**, aparece "LISTO" con el link de tu hoja **Registro votantes**, que también queda en tu Google Drive.
+5. **Publica.** Botón azul **Implementar → Nueva implementación** → engranaje ⚙️ → **Aplicación web**.
    - Ejecutar como: **Yo**
    - Quién tiene acceso: **Cualquier usuario**
-   Dale **Implementar** y copia la **URL de la aplicación web** (termina en `/exec`).
-6. Envíame esa URL y yo la pongo en `config.js`. (O la pegas tú en `SCRIPT_URL`.)
-7. Para que otras personas administren los datos: en la hoja, botón **Compartir**, agrega sus correos como **Editor** (o **Lector** si solo deben ver).
+   Toca **Implementar** y copia la **URL de la aplicación web** (termina en `/exec`).
+6. **Envíame esa URL** y yo la conecto al formulario.
+7. **Para que otras personas administren los datos:** abre la hoja en Google Drive → **Compartir** → agrega sus correos como **Editor** (o **Lector** si solo deben ver).
 
-> Si más adelante cambias el código del Apps Script, usa **Implementar → Administrar implementaciones → editar (lápiz) → Versión: Nueva versión**, así la URL sigue siendo la misma.
+> Si más adelante cambia el código del Apps Script: **Implementar → Administrar implementaciones → lápiz ✏️ → Versión: Nueva versión → Implementar**. Así la URL sigue siendo la misma.
 
 ## Link para compartir
 
