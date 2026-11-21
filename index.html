@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registro</title>
+<meta name="description" content="Registra tus datos en menos de un minuto.">
+<meta name="theme-color" content="#1d4ed8">
+<style>
+  :root {
+    --bg: #f3f5f9; --card: #ffffff; --text: #111827; --muted: #6b7280;
+    --border: #d1d5db; --primary: #1d4ed8; --primary-dark: #1e40af;
+    --error: #b91c1c; --ok: #15803d; --soft: #eef2ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1020; --card: #141b2d; --text: #f3f4f6; --muted: #9ca3af;
+      --border: #374151; --primary: #3b82f6; --primary-dark: #2563eb;
+      --error: #f87171; --ok: #4ade80; --soft: #1e293b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 560px; margin: 0 auto; padding: 20px 16px 48px; }
+  header h1 { font-size: 1.5rem; margin: 8px 0 4px; }
+  header p { color: var(--muted); margin: 0 0 16px; }
+  .ref { background: var(--soft); border-radius: 10px; padding: 8px 12px; margin-bottom: 14px; font-size: .95rem; }
+  form { background: var(--card); border-radius: 16px; padding: 18px 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .field { margin-bottom: 16px; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .hint { font-weight: 400; color: var(--muted); font-size: .88rem; }
+  input, select {
+    width: 100%; font-size: 1.05rem; padding: 12px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--card); color: var(--text);
+  }
+  input:focus, select:focus { outline: 2px solid var(--primary); border-color: transparent; }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; min-width: 0; }
+  .err { color: var(--error); font-size: .88rem; margin-top: 4px; display: none; }
+  .field.invalid .err { display: block; }
+  .field.invalid input, .field.invalid select { border-color: var(--error); }
+  .btn {
+    display: block; width: 100%; border: 0; border-radius: 12px; padding: 14px;
+    font-size: 1.1rem; font-weight: 700; cursor: pointer;
+    background: var(--primary); color: #fff;
+  }
+  .btn:hover { background: var(--primary-dark); }
+  .btn:disabled { opacity: .6; cursor: wait; }
+  .btn-sec {
+    margin-top: 8px; background: var(--soft); color: var(--primary);
+    font-size: .95rem; padding: 10px; font-weight: 600;
+  }
+  .consent { display: flex; gap: 10px; align-items: flex-start; }
+  .consent input { width: 22px; height: 22px; flex: 0 0 22px; margin-top: 2px; }
+  .consent label { font-weight: 400; font-size: .93rem; }
+  details { font-size: .85rem; color: var(--muted); margin-top: 8px; }
+  details summary { cursor: pointer; color: var(--primary); }
+  .hp { position: absolute; left: -9999px; }
+  .msg { border-radius: 12px; padding: 14px; margin-top: 14px; display: none; }
+  .msg.show { display: block; }
+  .msg.ok { background: rgba(21,128,61,.12); color: var(--ok); }
+  .msg.bad { background: rgba(185,28,28,.12); color: var(--error); }
+  .done { text-align: center; background: var(--card); border-radius: 16px; padding: 32px 16px; display: none; }
+  .done h2 { margin-top: 0; }
+  .demo { background: #fef3c7; color: #92400e; border-radius: 10px; padding: 8px 12px; font-size: .88rem; margin-bottom: 14px; display: none; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="titulo">Registro</h1>
+    <p id="subtitulo"></p>
+  </header>
+
+  <div class="demo" id="demo">Modo prueba: todavía no está conectada la hoja de Google, los datos no se guardan.</div>
+  <div class="ref" id="ref" hidden></div>
+
+  <form id="form" novalidate autocomplete="on">
+    <div class="field" data-f="cedula">
+      <label for="cedula">Cédula</label>
+      <input id="cedula" name="cedula" inputmode="numeric" autocomplete="off" placeholder="Solo números" maxlength="10" required>
+      <div class="err">Escribe una cédula válida (6 a 10 números).</div>
+    </div>
+
+    <div class="field" data-f="nombre">
+      <label for="nombre">Nombres y apellidos</label>
+      <input id="nombre" name="nombre" autocomplete="name" autocapitalize="words" placeholder="Como aparece en la cédula" required>
+      <div class="err">Escribe tu nombre completo.</div>
+    </div>
+
+    <div class="field" data-f="telefono">
+      <label for="telefono">Celular <span class="hint">(WhatsApp)</span></label>
+      <input id="telefono" name="telefono" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="300 123 4567" maxlength="12" required>
+      <div class="err">Escribe un celular de 10 números que empiece por 3.</div>
+    </div>
+
+    <div class="field" data-f="cumpleanos">
+      <label for="cumpleanos">Cumpleaños <span class="hint">(día / mes / año)</span></label>
+      <input id="cumpleanos" name="cumpleanos" inputmode="numeric" autocomplete="bday" placeholder="DD/MM/AAAA" maxlength="10" required>
+      <div class="err">Escribe una fecha válida, por ejemplo 17/02/1990. Debes ser mayor de edad.</div>
+    </div>
+
+    <div class="field" data-f="direccion">
+      <label for="direccion">Dirección <span class="hint">(y barrio)</span></label>
+      <input id="direccion" name="direccion" autocomplete="street-address" placeholder="Calle 10 # 20-30, barrio Centro" required>
+      <div class="err">Escribe tu dirección.</div>
+    </div>
+
+    <div class="field" data-f="puesto">
+      <label for="puesto">Puesto de votación</label>
+      <input id="puesto" name="puesto" placeholder="Ej: Colegio San José" required>
+      <div class="err">Escribe tu puesto de votación (si no lo sabes, usa el botón).</div>
+      <button type="button" class="btn btn-sec" id="consultar">¿No sabes tu puesto? Consúltalo aquí</button>
+    </div>
+
+    <div class="field" data-f="mesa">
+      <label for="mesa">Mesa <span class="hint">(opcional)</span></label>
+      <input id="mesa" name="mesa" inputmode="numeric" maxlength="4" placeholder="Ej: 12">
+    </div>
+
+    <div class="field" data-f="genero">
+      <label for="genero">Género musical favorito</label>
+      <select id="genero" name="genero" required>
+        <option value="">Elige uno</option>
+        <option>Vallenato</option>
+        <option>Salsa</option>
+        <option>Reguetón</option>
+        <option>Música popular</option>
+        <option>Merengue</option>
+        <option>Bachata</option>
+        <option>Champeta</option>
+        <option>Cumbia</option>
+        <option>Música llanera</option>
+        <option>Rancheras</option>
+        <option>Baladas</option>
+        <option>Pop</option>
+        <option>Rock</option>
+        <option>Electrónica</option>
+        <option>Otro</option>
+      </select>
+      <div class="err">Elige un género.</div>
+      <input id="generoOtro" name="generoOtro" placeholder="¿Cuál?" style="margin-top:8px" hidden>
+    </div>
+
+    <input class="hp" type="text" name="website" id="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+    <div class="field" data-f="autoriza">
+      <div class="consent">
+        <input type="checkbox" id="autoriza" name="autoriza" required>
+        <label for="autoriza">Autorizo el tratamiento de mis datos personales según la política descrita abajo.</label>
+      </div>
+      <div class="err">Debes aceptar para poder registrarte.</div>
+      <details>
+        <summary>Ver política de tratamiento de datos</summary>
+        <p id="politica"></p>
+      </details>
+    </div>
+
+    <button class="btn" type="submit" id="enviar">Registrarme</button>
+    <div class="msg" id="msg"></div>
+  </form>
+
+  <div class="done" id="done">
+    <h2>¡Gracias por registrarte!</h2>
+    <p id="doneTxt">Tus datos quedaron guardados. Te estaremos contactando.</p>
+    <button class="btn btn-sec" id="otro" type="button">Registrar a otra persona</button>
+  </div>
+</main>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
