@@ -11,7 +11,7 @@ Si una cédula ya está registrada, se actualiza esa fila en lugar de duplicarla
 
 ## Paso a paso para conectar Google (unos 10 minutos, una sola vez, sirve desde iPhone)
 
-1. **Copia el código.** Abre https://raw.githubusercontent.com/SantiagoAndres1702/registro-votantes/main/apps-script/Codigo.gs, toca y mantén sobre el texto → **Seleccionar todo** → **Copiar**.
+1. **Copia el código.** Abre https://raw.githubusercontent.com/SantiagoAndres1702/Registro-votantes/main/apps-script/Codigo.gs, toca y mantén sobre el texto → **Seleccionar todo** → **Copiar**.
 2. **Abre Apps Script en modo escritorio.** En Safari entra a https://script.google.com con tu cuenta de Google. Toca el ícono **"aA"** de la barra de direcciones → **Solicitar sitio web de escritorio**.
 3. **Crea el proyecto.** Toca **Nuevo proyecto**. Borra lo que aparece en el editor y pega el código. Toca el ícono de guardar 💾.
 4. **Crea la hoja.** Arriba, en la lista de funciones, elige **prepararHoja** y toca **Ejecutar**. Google pide permisos:
@@ -29,10 +29,10 @@ Si una cédula ya está registrada, se actualiza esa fila en lugar de duplicarla
 
 ## Link para compartir
 
-`https://SantiagoAndres1702.github.io/registro-votantes/`
+`https://SantiagoAndres1702.github.io/Registro-votantes/`
 
 Para saber quién trajo a cada persona, agrega `?ref=` y el nombre del líder:
-`https://SantiagoAndres1702.github.io/registro-votantes/?ref=Carlos`
+`https://SantiagoAndres1702.github.io/Registro-votantes/?ref=Carlos`
 Ese nombre queda guardado en la columna **Referido por**.
 
 ## Sobre el autocompletado con la cédula
