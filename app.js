@@ -64,10 +64,11 @@
   $("consultarWa").addEventListener("click", function () {
     var ced = copiarCedula();
     $("puestoHint").hidden = false;
-    $("puestoHint").textContent = (ced ? "Copiamos tu cédula (" + ced + "). " : "") +
-      "En el chat de la Registraduría elige la opción de lugar de votación y envía tu cédula sin puntos. " +
-      "Luego vuelve aquí y escribe el puesto y la mesa que te respondan.";
-    window.open("https://wa.me/" + C.WHATSAPP_PUESTO + "?text=" + encodeURIComponent("Hola"), "_blank", "noopener");
+    $("puestoHint").textContent = ced
+      ? "Se abrirá el chat de la Registraduría con tu cédula ya escrita: solo dale Enviar. Cuando te responda, vuelve aquí y escribe el puesto y la mesa."
+      : "Escribe primero tu cédula arriba para que quede lista en el chat. También puedes dejar el puesto vacío y nosotros lo consultamos.";
+    if (!ced) { $("cedula").focus(); return; }
+    window.open("https://wa.me/" + C.WHATSAPP_PUESTO + "?text=" + encodeURIComponent(ced), "_blank", "noopener");
   });
   $("consultar").addEventListener("click", function () {
     var ced = copiarCedula();

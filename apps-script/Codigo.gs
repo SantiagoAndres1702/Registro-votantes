@@ -14,9 +14,13 @@ var HOJA = 'Registros';
 var COLUMNAS = [
   'Fecha de registro', 'Cédula', 'Nombres y apellidos', 'Celular', 'Cumpleaños',
   'Dirección', 'Puesto de votación', 'Mesa', 'Género musical', 'Referido por',
-  'Autoriza datos', 'Última actualización', 'Estado de seguimiento', 'Notas'
+  'Autoriza datos', 'Última actualización', 'Estado de seguimiento', 'Notas', 'Consultar puesto'
 ];
 var COL_CEDULA = 2; // columna B
+var COL_PUESTO = 7; // columna G
+var COL_LINK = 15;  // columna O
+// Chat oficial de WhatsApp de la Registraduría para consultar el puesto con la cédula
+var WHATSAPP_PUESTO = '573102579432';
 
 function doPost(e) {
   var lock = LockService.getScriptLock();
@@ -53,9 +57,11 @@ function doPost(e) {
     if (existente) {
       fila[0] = hoja.getRange(existente, 1).getValue(); // conserva la fecha original
       hoja.getRange(existente, 1, 1, fila.length).setValues([fila]);
+      ponerLink(hoja, existente, cedula, limpio(d.puesto));
       return respuesta({ ok: true, actualizado: true });
     }
     hoja.appendRow(fila);
+    ponerLink(hoja, hoja.getLastRow(), cedula, limpio(d.puesto));
     return respuesta({ ok: true, actualizado: false });
   } catch (err) {
     return respuesta({ ok: false, error: 'Error guardando: ' + err.message });
@@ -95,6 +101,38 @@ function obtenerHoja() {
     hoja.getRange('L:L').setNumberFormat('dd/mm/yyyy hh:mm');
   }
   return hoja;
+}
+
+// En los registros sin puesto deja un link de un toque que abre el WhatsApp de la
+// Registraduría con la cédula ya escrita: solo hay que darle Enviar.
+function ponerLink(hoja, fila, cedula, puesto) {
+  asegurarEncabezados(hoja);
+  var celda = hoja.getRange(fila, COL_LINK);
+  if (!puesto || puesto === 'Por consultar') {
+    celda.setFormula('=HYPERLINK("https://wa.me/' + WHATSAPP_PUESTO + '?text=' + cedula + '","📲 Consultar")');
+  } else {
+    celda.clearContent();
+  }
+}
+
+function asegurarEncabezados(hoja) {
+  var actual = hoja.getRange(1, 1, 1, COLUMNAS.length).getValues()[0];
+  for (var i = 0; i < COLUMNAS.length; i++) {
+    if (actual[i] !== COLUMNAS[i]) hoja.getRange(1, i + 1).setValue(COLUMNAS[i]).setFontWeight('bold').setBackground('#dbeafe');
+  }
+}
+
+/** Ejecútala una vez: pone el link "Consultar" en todos los registros que aún no tienen puesto. */
+function linksPendientes() {
+  var hoja = obtenerHoja();
+  asegurarEncabezados(hoja);
+  var ultima = hoja.getLastRow();
+  if (ultima < 2) return;
+  var datos = hoja.getRange(2, 1, ultima - 1, COL_PUESTO).getValues();
+  for (var i = 0; i < datos.length; i++) {
+    var ced = String(datos[i][COL_CEDULA - 1]).replace(/\D/g, '');
+    if (ced) ponerLink(hoja, i + 2, ced, String(datos[i][COL_PUESTO - 1]).trim());
+  }
 }
 
 function buscarCedula(hoja, cedula) {

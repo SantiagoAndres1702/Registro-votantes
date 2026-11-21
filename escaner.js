@@ -60,6 +60,40 @@
     return c;
   }
 
+  // Recorte ampliado a un ancho fijo (también agranda), con giro fino y enfoque digital.
+  // Así se leyeron fotos reales algo borrosas: ampliar ~2x + girar de a 1° + enfocar.
+  // escala: veces que se agranda el recorte (sin pasar de 3000 px de largo)
+  function ampliado(src, sw, sh, r, escala, grados, nitidez) {
+    var x = r.x * sw, y = r.y * sh, w = r.w * sw, h = r.h * sh;
+    var largo = Math.max(w, h);
+    var k = Math.min(escala, 3000 / largo);
+    var dw = w * k, dh = h * k;
+    var rad = grados * Math.PI / 180, cs = Math.abs(Math.cos(rad)), sn = Math.abs(Math.sin(rad));
+    var c = document.createElement("canvas");
+    c.width = Math.round(dw * cs + dh * sn) + 40; c.height = Math.round(dw * sn + dh * cs) + 40;
+    var ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+    ctx.translate(c.width / 2, c.height / 2);
+    ctx.rotate(rad);
+    ctx.drawImage(src, x, y, w, h, -dw / 2, -dh / 2, dw, dh);
+    if (nitidez) enfocar(ctx, c.width, c.height, nitidez);
+    return c;
+  }
+
+  function enfocar(ctx, w, h, amt) {
+    var d = ctx.getImageData(0, 0, w, h), s = d.data, n = w * h;
+    var g = new Float32Array(n);
+    for (var i = 0; i < n; i++) g[i] = s[i * 4] * 0.3 + s[i * 4 + 1] * 0.59 + s[i * 4 + 2] * 0.11;
+    for (var yy = 0; yy < h; yy++) for (var xx = 0; xx < w; xx++) {
+      var j = yy * w + xx, v = g[j];
+      if (xx > 0 && xx < w - 1 && yy > 0 && yy < h - 1) v = g[j] * (1 + 4 * amt) - amt * (g[j - 1] + g[j + 1] + g[j - w] + g[j + w]);
+      v = v < 0 ? 0 : v > 255 ? 255 : v;
+      s[j * 4] = s[j * 4 + 1] = s[j * 4 + 2] = v; s[j * 4 + 3] = 255;
+    }
+    ctx.putImageData(d, 0, 0);
+  }
+
   // ---------------- Interpretación de los datos ----------------
   function titulo(s) {
     return s.toLowerCase().replace(/(^|\s)\S/g, function (c) { return c.toUpperCase(); });
@@ -177,7 +211,9 @@
     return { x: rx / w, y: ry / h, w: rw / w, h: rh / h, vertical: vertical };
   }
 
-  var ANGULOS = [0, -3, 3, -6, 6, -9, 9, -12, 12, -16, 16];
+  var ANGULOS = [0, 1, -1, 2, -2, 3, -3, 4, -4, 6, -6, 9, -9, 12, -12];
+  // Combinaciones probadas en orden (ancho del recorte en px, enfoque)
+  var PASADAS = [[2, 0.5], [3, 0.5], [2, 1], [1.5, 0.5], [2, 0], [3, 1], [1, 0.5]];
 
   function escanearFoto(file, avance) {
     var leido = null;
@@ -193,17 +229,20 @@
       if (nat) cola.push(function () {
         return nat.detect(img).then(function (c) { return c.length ? intento(c[0].rawValue) : null; });
       });
-      // 1) Recorte automático alrededor del código, a resolución completa
+      // 1) Recorte automático alrededor del código: ampliar, girar de a poco y enfocar
       var zona = ubicarCodigo(img, W, H);
       if (zona) {
         var g0 = zona.vertical ? 90 : 0;
-        [g0, g0 + 180].forEach(function (g) {
-          ANGULOS.forEach(function (a) {
-            cola.push(function () { return intento(decodificarZX(Z, recorte(img, W, H, zona, 3200, g + a), false)); });
+        // primero ángulos pequeños con todas las pasadas (lo más común), luego el resto
+        [ANGULOS.slice(0, 5), ANGULOS.slice(5)].forEach(function (grupo) {
+          PASADAS.forEach(function (ps) {
+            grupo.forEach(function (a) {
+              cola.push(function () { return intento(decodificarZX(Z, ampliado(img, W, H, zona, ps[0], g0 + a, ps[1]), true)); });
+            });
           });
         });
-        ANGULOS.slice(0, 5).forEach(function (a) {
-          cola.push(function () { return intento(decodificarZX(Z, recorte(img, W, H, zona, 2000, g0 + a), true)); });
+        [0, 2, -2].forEach(function (a) {
+          cola.push(function () { return intento(decodificarZX(Z, ampliado(img, W, H, zona, 2, g0 + 180 + a, 0.5), true)); });
         });
       }
       // 2) Respaldo: imagen completa
@@ -214,9 +253,9 @@
         });
       });
 
-      var i = 0;
+      var i = 0, limite = Date.now() + 30000; // máximo 30 s
       function siguiente() {
-        if (i >= cola.length) return null;
+        if (i >= cola.length || Date.now() > limite) return null;
         if (avance) avance(i / cola.length);
         var f = cola[i++];
         return pausa().then(f).then(function (d) { return d || siguiente(); }).catch(siguiente);
@@ -313,10 +352,10 @@
             p = nat.detect(video).then(function (c) { return c.length ? c[0].rawValue : null; });
           } else {
             // Alterna: zona detectada automáticamente (no hace falta alinear) y recuadro verde
-            var ang = [0, -3, 3, -6, 6, -9, 9][Math.floor(n / 2) % 7];
+            var ang = ANGULOS[Math.floor(n / 2) % 9];
             var zona = n % 2 === 0 ? ubicarCodigo(video, vw, vh) : null;
             var r0 = zona || reg, g0 = zona && zona.vertical ? 90 : 0;
-            p = Promise.resolve(decodificarZX(Z, recorte(video, vw, vh, r0, 2400, g0 + ang), n % 14 === 0));
+            p = Promise.resolve(decodificarZX(Z, ampliado(video, vw, vh, r0, 2, g0 + ang, n % 4 < 2 ? 0.5 : 0), n % 6 === 0));
           }
           p.then(function (texto) {
             if (!vivo) return;
