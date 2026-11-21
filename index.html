@@ -110,10 +110,10 @@
     </div>
 
     <div class="field" data-f="puesto">
-      <label for="puesto">Puesto de votación</label>
-      <input id="puesto" name="puesto" placeholder="Ej: Colegio San José" required>
-      <div class="err">Escribe tu puesto de votación (si no lo sabes, usa el botón).</div>
-      <button type="button" class="btn btn-sec" id="consultar">¿No sabes tu puesto? Consúltalo aquí</button>
+      <label for="puesto">Puesto de votación <span class="hint">(si no lo sabes, déjalo vacío)</span></label>
+      <input id="puesto" name="puesto" placeholder="Ej: Colegio San José">
+      <div class="hint" id="puestoHint" style="margin-top:6px">No te preocupes si no lo sabes: nosotros lo consultamos por ti con tu cédula.</div>
+      <button type="button" class="btn btn-sec" id="consultar" hidden>¿No sabes tu puesto? Consúltalo aquí</button>
     </div>
 
     <div class="field" data-f="mesa">

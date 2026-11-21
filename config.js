@@ -14,6 +14,9 @@ window.APP_CONFIG = {
   RESPONSABLE: "[Nombre del responsable]",
   CONTACTO: "[WhatsApp o correo de contacto]",
 
-  // Enlace oficial de la Registraduría para consultar el puesto de votación
-  URL_CONSULTA_PUESTO: "https://wsp.registraduria.gov.co/censo/consultar/",
+  // Enlace oficial de la Registraduría para consultar el puesto de votación.
+  // La Registraduría solo la habilita en temporada electoral (en nov-2026
+  // https://wsp.registraduria.gov.co/censo/consultar/ da error 404).
+  // Déjalo vacío para ocultar el botón; ponlo de nuevo cuando vuelva a funcionar.
+  URL_CONSULTA_PUESTO: "",
 };

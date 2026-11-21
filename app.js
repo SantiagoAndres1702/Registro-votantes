@@ -50,6 +50,8 @@
   });
 
   // ---------- Botón: consultar puesto en la Registraduría ----------
+  // Solo se muestra si hay un enlace configurado (la consulta oficial se apaga entre elecciones)
+  if (C.URL_CONSULTA_PUESTO) $("consultar").hidden = false;
   $("consultar").addEventListener("click", function () {
     var ced = digits($("cedula").value);
     if (ced && navigator.clipboard) {
@@ -58,7 +60,7 @@
     } else {
       showMsg("Se abrirá la página de la Registraduría. Escribe tu cédula, mira tu puesto y mesa, y vuelve aquí a escribirlos.", true);
     }
-    window.open(C.URL_CONSULTA_PUESTO || "https://wsp.registraduria.gov.co/censo/consultar/", "_blank", "noopener");
+    window.open(C.URL_CONSULTA_PUESTO, "_blank", "noopener");
   });
 
   // ---------- Validación ----------
@@ -80,7 +82,6 @@
     telefono: function () { return /^3\d{9}$/.test(digits($("telefono").value)); },
     cumpleanos: function () { return !!parseFecha($("cumpleanos").value); },
     direccion: function () { return $("direccion").value.trim().length >= 5; },
-    puesto: function () { return $("puesto").value.trim().length >= 3; },
     genero: function () { return !!$("genero").value; },
     autoriza: function () { return $("autoriza").checked; }
   };
@@ -134,7 +135,7 @@
       telefono: digits($("telefono").value),
       cumpleanos: parseFecha($("cumpleanos").value),
       direccion: $("direccion").value.trim(),
-      puesto: $("puesto").value.trim(),
+      puesto: $("puesto").value.trim() || "Por consultar",
       mesa: $("mesa").value,
       genero: genero,
       referido: ref,
