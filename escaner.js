@@ -122,15 +122,62 @@
     });
   }
 
-  // Intentos ordenados: foto completa a buena resolución, luego franjas y recortes
-  var REGIONES = [
-    { x: 0, y: 0, w: 1, h: 1 },
-    { x: 0, y: 0.25, w: 1, h: 0.5 },
-    { x: 0, y: 0.5, w: 1, h: 0.5 },
-    { x: 0, y: 0, w: 1, h: 0.5 },
-    { x: 0.1, y: 0.3, w: 0.8, h: 0.4 },
-    { x: 0.25, y: 0, w: 0.5, h: 1 }
-  ];
+  // Busca dónde está el código de barras: la zona con más "rayas" (bordes) muy juntas.
+  // Devuelve la región en fracciones de la imagen y si el código está vertical.
+  function ubicarCodigo(src, sw, sh) {
+    var k = 640 / Math.max(sw, sh);
+    var w = Math.max(1, Math.round(sw * k)), h = Math.max(1, Math.round(sh * k));
+    var c = document.createElement("canvas"); c.width = w; c.height = h;
+    var ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(src, 0, 0, w, h);
+    var px = ctx.getImageData(0, 0, w, h).data;
+    var g = new Float32Array(w * h);
+    for (var i = 0; i < w * h; i++) g[i] = px[i * 4] * 0.3 + px[i * 4 + 1] * 0.59 + px[i * 4 + 2] * 0.11;
+    var T = 8, gw = Math.floor(w / T), gh = Math.floor(h / T);
+    var gx = new Float32Array(gw * gh), gy = new Float32Array(gw * gh), sc = new Float32Array(gw * gh), max = 0;
+    for (var by = 0; by < gh; by++) for (var bx = 0; bx < gw; bx++) {
+      var sx = 0, sy = 0;
+      for (var y = by * T; y < by * T + T; y++) for (var x = bx * T; x < bx * T + T; x++) {
+        var o = y * w + x;
+        if (x + 1 < w) sx += Math.abs(g[o + 1] - g[o]);
+        if (y + 1 < h) sy += Math.abs(g[o + w] - g[o]);
+      }
+      var j = by * gw + bx;
+      gx[j] = sx; gy[j] = sy;
+      sc[j] = sx + sy;
+      if (sc[j] > max) max = sc[j];
+    }
+    if (!max) return null;
+    // celdas "fuertes" y su componente conectada más grande
+    var umbral = max * 0.5, vis = new Uint8Array(gw * gh), mejor = null;
+    for (var s0 = 0; s0 < gw * gh; s0++) {
+      if (vis[s0] || sc[s0] < umbral) continue;
+      var pila = [s0], suma = 0, sgx = 0, sgy = 0, x0 = gw, y0 = gh, x1 = 0, y1 = 0, n = 0;
+      vis[s0] = 1;
+      while (pila.length) {
+        var q = pila.pop(), qx = q % gw, qy = (q / gw) | 0;
+        suma += sc[q]; sgx += gx[q]; sgy += gy[q]; n++;
+        if (qx < x0) x0 = qx; if (qx > x1) x1 = qx; if (qy < y0) y0 = qy; if (qy > y1) y1 = qy;
+        [q - 1, q + 1, q - gw, q + gw].forEach(function (v) {
+          if (v < 0 || v >= gw * gh || vis[v] || sc[v] < umbral) return;
+          if ((v === q - 1 && qx === 0) || (v === q + 1 && qx === gw - 1)) return;
+          vis[v] = 1; pila.push(v);
+        });
+      }
+      if (n >= 6 && (!mejor || suma > mejor.suma)) mejor = { suma: suma, x0: x0, y0: y0, x1: x1, y1: y1, sgx: sgx, sgy: sgy };
+    }
+    if (!mejor) return null;
+    var bw = (mejor.x1 - mejor.x0 + 1) * T, bh = (mejor.y1 - mejor.y0 + 1) * T;
+    var vertical = bh > bw * 1.2;
+    var mx = vertical ? 0.35 : 0.08, my = vertical ? 0.08 : 0.35; // margen extra (más en el lado corto)
+    var rx = mejor.x0 * T - bw * mx, ry = mejor.y0 * T - bh * my;
+    var rw = bw * (1 + 2 * mx), rh = bh * (1 + 2 * my);
+    rx = Math.max(0, rx); ry = Math.max(0, ry);
+    rw = Math.min(w - rx, rw); rh = Math.min(h - ry, rh);
+    return { x: rx / w, y: ry / h, w: rw / w, h: rh / h, vertical: vertical };
+  }
+
+  var ANGULOS = [0, -3, 3, -6, 6, -9, 9, -12, 12, -16, 16];
 
   function escanearFoto(file, avance) {
     var leido = null;
@@ -146,18 +193,25 @@
       if (nat) cola.push(function () {
         return nat.detect(img).then(function (c) { return c.length ? intento(c[0].rawValue) : null; });
       });
-      // El lector solo tolera ~3° de inclinación: probamos varios ángulos
-      var base = 0; // normalmente la cédula sale horizontal; luego se prueba girada
-      var angulos = [0, -4, 4, -8, 8, -12, 12, -16, 16];
-      [base, base === 0 ? 90 : 0].forEach(function (g0, k) {
-        REGIONES.slice(0, k ? 2 : REGIONES.length).forEach(function (reg, i) {
-          angulos.forEach(function (a) {
-            cola.push(function () { return intento(decodificarZX(Z, recorte(img, W, H, reg, 2400, g0 + a), false)); });
+      // 1) Recorte automático alrededor del código, a resolución completa
+      var zona = ubicarCodigo(img, W, H);
+      if (zona) {
+        var g0 = zona.vertical ? 90 : 0;
+        [g0, g0 + 180].forEach(function (g) {
+          ANGULOS.forEach(function (a) {
+            cola.push(function () { return intento(decodificarZX(Z, recorte(img, W, H, zona, 3200, g + a), false)); });
           });
         });
-      });
-      angulos.forEach(function (a) {
-        cola.push(function () { return intento(decodificarZX(Z, recorte(img, W, H, REGIONES[0], 1600, base + a), true)); });
+        ANGULOS.slice(0, 5).forEach(function (a) {
+          cola.push(function () { return intento(decodificarZX(Z, recorte(img, W, H, zona, 2000, g0 + a), true)); });
+        });
+      }
+      // 2) Respaldo: imagen completa
+      var todo = { x: 0, y: 0, w: 1, h: 1 };
+      [0, 90].forEach(function (g) {
+        ANGULOS.slice(0, 7).forEach(function (a) {
+          cola.push(function () { return intento(decodificarZX(Z, recorte(img, W, H, todo, 2400, g + a), false)); });
+        });
       });
 
       var i = 0;
@@ -196,7 +250,7 @@
     ov.className = "esc-overlay";
     ov.innerHTML = '<video playsinline muted autoplay></video>' +
       '<div class="esc-guia"></div>' +
-      '<div class="esc-txt">Voltea la cédula y pon el <b>código de barras</b> dentro del recuadro verde. Acércala hasta que llene el recuadro y se vea nítido.</div>' +
+      '<div class="esc-txt">Voltea la cédula y apunta al <b>código de barras</b>. Que se vea nítido: si sale borroso, aléjala un poco. Buena luz y sin reflejos.</div>' +
       '<div class="esc-bar"><button class="esc-cerrar" type="button">Cancelar</button>' +
       '<button class="esc-foto" type="button">Mejor tomar foto</button></div>';
     document.body.appendChild(ov);
@@ -227,7 +281,11 @@
         var track = stream.getVideoTracks()[0];
         try { // enfoque continuo donde se pueda
           var cap = track.getCapabilities ? track.getCapabilities() : {};
-          if (cap.focusMode && cap.focusMode.indexOf("continuous") >= 0) track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+          var adv = {};
+          if (cap.focusMode && cap.focusMode.indexOf("continuous") >= 0) adv.focusMode = "continuous";
+          // Un poco de zoom permite tener la cédula más lejos, donde la cámara sí enfoca
+          if (cap.zoom && cap.zoom.max >= 1.5) adv.zoom = Math.min(2, cap.zoom.max);
+          if (Object.keys(adv).length) track.applyConstraints({ advanced: [adv] }).catch(function () {});
         } catch (e) { /* no pasa nada */ }
         video.srcObject = stream;
         return video.play().then(function () { return [Z, nat]; });
@@ -254,8 +312,11 @@
           if (nat) {
             p = nat.detect(video).then(function (c) { return c.length ? c[0].rawValue : null; });
           } else {
-            var ang = [0, -4, 4, -8, 8][n % 5];
-            p = Promise.resolve(decodificarZX(Z, recorte(video, vw, vh, reg, 2400, ang), n % 10 === 0));
+            // Alterna: zona detectada automáticamente (no hace falta alinear) y recuadro verde
+            var ang = [0, -3, 3, -6, 6, -9, 9][Math.floor(n / 2) % 7];
+            var zona = n % 2 === 0 ? ubicarCodigo(video, vw, vh) : null;
+            var r0 = zona || reg, g0 = zona && zona.vertical ? 90 : 0;
+            p = Promise.resolve(decodificarZX(Z, recorte(video, vw, vh, r0, 2400, g0 + ang), n % 14 === 0));
           }
           p.then(function (texto) {
             if (!vivo) return;
@@ -279,5 +340,5 @@
     });
   }
 
-  window.Escaner = { escanearFoto: escanearFoto, escanearCamara: escanearCamara, interpretar: interpretar };
+  window.Escaner = { escanearFoto: escanearFoto, escanearCamara: escanearCamara, interpretar: interpretar, ubicarCodigo: ubicarCodigo };
 })();
