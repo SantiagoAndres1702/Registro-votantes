@@ -23,4 +23,8 @@ window.APP_CONFIG = {
   // https://wsp.registraduria.gov.co/censo/consultar/ da error 404).
   // Déjalo vacío para ocultar el botón; ponlo de nuevo cuando vuelva a funcionar.
   URL_CONSULTA_PUESTO: "",
+
+  // Chat oficial de WhatsApp de la Registraduría (consulta de puesto con la cédula).
+  // Número publicado en febrero de 2026; déjalo vacío para ocultar el botón.
+  WHATSAPP_PUESTO: "573102579432",
 };

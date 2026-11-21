@@ -34,17 +34,18 @@
 
   $("telefono").addEventListener("input", function (e) {
     var d = digits(e.target.value);
-    if (d.indexOf("57") === 0 && d.length > 10) d = d.slice(2);
+    if (d.indexOf("57") === 0 && (d.length > 10 || /^\s*\+/.test(e.target.value))) d = d.slice(2);
     d = d.slice(0, 10);
     e.target.value = d.length > 6 ? d.slice(0, 3) + " " + d.slice(3, 6) + " " + d.slice(6)
                    : d.length > 3 ? d.slice(0, 3) + " " + d.slice(3) : d;
   });
 
-  $("cumpleanos").addEventListener("input", function (e) {
-    var d = digits(e.target.value).slice(0, 8);
-    e.target.value = d.length > 4 ? d.slice(0, 2) + "/" + d.slice(2, 4) + "/" + d.slice(4)
-                   : d.length > 2 ? d.slice(0, 2) + "/" + d.slice(2) : d;
+  // Cumpleaños: día, mes y año separados (evita confundir día/mes)
+  $("dia").addEventListener("input", function (e) {
+    e.target.value = digits(e.target.value).slice(0, 2);
+    if (e.target.value.length === 2) $("mes").focus();
   });
+  $("anio").addEventListener("input", function (e) { e.target.value = digits(e.target.value).slice(0, 4); });
 
   $("genero").addEventListener("change", function (e) {
     var otro = e.target.value === "Otro";
@@ -52,62 +53,95 @@
     if (otro) $("generoOtro").focus();
   });
 
-  // ---------- Botón: consultar puesto en la Registraduría ----------
-  // Solo se muestra si hay un enlace configurado (la consulta oficial se apaga entre elecciones)
-  if (C.URL_CONSULTA_PUESTO) $("consultar").hidden = false;
-  $("consultar").addEventListener("click", function () {
+  // ---------- Consultar puesto de votación ----------
+  function copiarCedula() {
     var ced = digits($("cedula").value);
-    if (ced && navigator.clipboard) {
-      navigator.clipboard.writeText(ced).catch(function () {});
-      showMsg("Copiamos tu cédula. Pégala en la página de la Registraduría, mira tu puesto y mesa, y vuelve aquí a escribirlos.", true);
-    } else {
-      showMsg("Se abrirá la página de la Registraduría. Escribe tu cédula, mira tu puesto y mesa, y vuelve aquí a escribirlos.", true);
-    }
+    if (ced && navigator.clipboard) navigator.clipboard.writeText(ced).catch(function () {});
+    return ced;
+  }
+  if (C.WHATSAPP_PUESTO) $("consultarWa").hidden = false;
+  if (C.URL_CONSULTA_PUESTO) $("consultar").hidden = false;
+  $("consultarWa").addEventListener("click", function () {
+    var ced = copiarCedula();
+    $("puestoHint").hidden = false;
+    $("puestoHint").textContent = (ced ? "Copiamos tu cédula (" + ced + "). " : "") +
+      "En el chat de la Registraduría elige la opción de lugar de votación y envía tu cédula sin puntos. " +
+      "Luego vuelve aquí y escribe el puesto y la mesa que te respondan.";
+    window.open("https://wa.me/" + C.WHATSAPP_PUESTO + "?text=" + encodeURIComponent("Hola"), "_blank", "noopener");
+  });
+  $("consultar").addEventListener("click", function () {
+    var ced = copiarCedula();
+    $("puestoHint").hidden = false;
+    $("puestoHint").textContent = (ced ? "Copiamos tu cédula. Pégala en la página, " : "Escribe tu cédula en la página, ") +
+      "mira tu puesto y mesa, y vuelve aquí a escribirlos.";
     window.open(C.URL_CONSULTA_PUESTO, "_blank", "noopener");
   });
 
   // ---------- Escanear cédula ----------
-  $("escanear").addEventListener("click", function () { $("foto").value = ""; $("foto").click(); });
+  var TXT_SCAN = $("scanHint").innerHTML;
+  function llenarDesdeCedula(d) {
+    $("cedula").value = d.cedula;
+    $("nombre").value = d.nombre;
+    $("dia").value = d.dia; $("mes").value = d.mes; $("anio").value = d.anio;
+    ["cedula", "nombre", "cumpleanos"].forEach(function (k) {
+      form.querySelector('[data-f="' + k + '"]').classList.remove("invalid");
+    });
+    $("scanHint").textContent = "¡Listo! Revisa que tus datos estén bien y completa el resto.";
+    $("telefono").focus();
+  }
+  function errorScan(e) {
+    $("scanHint").textContent = e && e.codigo === "formato"
+      ? "Leímos el código, pero no parece de una cédula amarilla. Llena los datos a mano, por favor."
+      : "No pudimos leer el código. Prueba con buena luz, sin reflejos, acercando la cámara hasta que el código de barras llene la foto. O llena los datos a mano.";
+  }
+  function pedirFoto() { $("foto").value = ""; $("foto").click(); }
+
+  $("escanear").addEventListener("click", function () {
+    if (!window.Escaner) return;
+    window.Escaner.escanearCamara().then(function (d) {
+      if (d) llenarDesdeCedula(d);
+    }).catch(function (e) {
+      if (e && e.codigo === "foto") { pedirFoto(); return; }
+      if (e && e.codigo === "sincamara") {
+        $("scanHint").textContent = "No pudimos abrir la cámara en vivo. Toma una foto del código de barras de atrás de tu cédula.";
+        pedirFoto(); return;
+      }
+      errorScan(e);
+    });
+  });
+  $("tomarFoto").addEventListener("click", pedirFoto);
   $("foto").addEventListener("change", function () {
     var file = $("foto").files && $("foto").files[0];
     if (!file || !window.Escaner) return;
     var b = $("escanear");
     b.disabled = true; b.textContent = "Leyendo la cédula...";
-    window.Escaner.escanear(file).then(function (d) {
+    window.Escaner.escanearFoto(file, function (x) {
+      b.textContent = "Leyendo la cédula... " + Math.round(x * 100) + "%";
+    }).then(function (d) {
       if (!d) throw new Error("sin datos");
-      $("cedula").value = d.cedula;
-      $("nombre").value = d.nombre;
-      $("cumpleanos").value = d.cumpleanos;
-      ["cedula", "nombre", "cumpleanos"].forEach(function (k) {
-        form.querySelector('[data-f="' + k + '"]').classList.remove("invalid");
-      });
-      $("scanHint").textContent = "¡Listo! Revisa que tus datos estén bien y completa el resto.";
-      $("telefono").focus();
-    }).catch(function () {
-      $("scanHint").textContent = "No pudimos leer el código. Intenta de nuevo con buena luz, que el código de barras salga completo y enfocado, o llena los datos a mano.";
-    }).then(function () {
+      llenarDesdeCedula(d);
+    }).catch(errorScan).then(function () {
       b.disabled = false; b.textContent = "📷 Escanear mi cédula";
     });
   });
 
   // ---------- Validación ----------
-  function parseFecha(s) {
-    var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s || "");
-    if (!m) return null;
-    var dd = +m[1], mm = +m[2], yy = +m[3];
+  function parseFecha() {
+    var dd = +$("dia").value, mm = +$("mes").value, yy = +$("anio").value;
+    if (!dd || !mm || String(yy).length !== 4) return null;
     var dt = new Date(yy, mm - 1, dd);
     if (dt.getFullYear() !== yy || dt.getMonth() !== mm - 1 || dt.getDate() !== dd) return null;
     var hoy = new Date();
     var edad = hoy.getFullYear() - yy - ((hoy.getMonth() < mm - 1 || (hoy.getMonth() === mm - 1 && hoy.getDate() < dd)) ? 1 : 0);
     if (edad < 18 || edad > 110) return null;
-    return m[3] + "-" + m[2] + "-" + m[1];
+    return yy + "-" + (mm < 10 ? "0" : "") + mm + "-" + (dd < 10 ? "0" : "") + dd;
   }
 
   var checks = {
     cedula: function () { return /^\d{6,10}$/.test($("cedula").value); },
     nombre: function () { return $("nombre").value.trim().split(/\s+/).length >= 2; },
     telefono: function () { return /^3\d{9}$/.test(digits($("telefono").value)); },
-    cumpleanos: function () { return !!parseFecha($("cumpleanos").value); },
+    cumpleanos: function () { return !!parseFecha(); },
     direccion: function () { return $("direccion").value.trim().length >= 5; },
     genero: function () { return !!$("genero").value; }
   };
@@ -128,11 +162,14 @@
     return !primero;
   }
 
+  var camposDe = { cumpleanos: ["dia", "mes", "anio"] };
   Object.keys(checks).forEach(function (k) {
-    var el = $(k);
-    el.addEventListener(el.type === "checkbox" || el.tagName === "SELECT" ? "change" : "input", function () {
-      var f = form.querySelector('[data-f="' + k + '"]');
-      if (f.classList.contains("invalid")) f.classList.toggle("invalid", !checks[k]());
+    (camposDe[k] || [k]).forEach(function (id) {
+      var el = $(id);
+      el.addEventListener(el.tagName === "SELECT" ? "change" : "input", function () {
+        var f = form.querySelector('[data-f="' + k + '"]');
+        if (f.classList.contains("invalid")) f.classList.toggle("invalid", !checks[k]());
+      });
     });
   });
 
@@ -159,7 +196,7 @@
       cedula: $("cedula").value,
       nombre: titleCase($("nombre").value),
       telefono: digits($("telefono").value),
-      cumpleanos: parseFecha($("cumpleanos").value),
+      cumpleanos: parseFecha(),
       direccion: $("direccion").value.trim(),
       puesto: $("puesto").value.trim() || "Por consultar",
       mesa: $("mesa").value,
@@ -202,7 +239,8 @@
   $("otro").addEventListener("click", function () {
     form.reset();
     $("generoOtro").hidden = true;
-    $("scanHint").textContent = "Toma una foto del código de barras de atrás de tu cédula amarilla y llenamos tu nombre, cédula y cumpleaños.";
+    $("scanHint").innerHTML = TXT_SCAN;
+    $("puestoHint").hidden = true;
     $("msg").className = "msg";
     $("done").style.display = "none";
     form.style.display = "block";

@@ -58,6 +58,13 @@
   .scan { border: 2px dashed var(--border); border-radius: 12px; padding: 12px; margin-bottom: 18px; text-align: center; }
   .scan .hint { margin: 8px 0 0; }
   .btn-scan { background: var(--ok); }
+  .linkbtn { background: none; border: 0; color: var(--primary); font-size: .9rem; text-decoration: underline; margin-top: 6px; cursor: pointer; padding: 4px; }
+  .fecha { display: flex; gap: 8px; }
+  .fecha input { flex: 0 0 4.2em; text-align: center; }
+  .fecha select { flex: 1; }
+  .fecha input.anio { flex: 0 0 5.6em; }
+  .btn-wa { background: #25d366; color: #fff; }
+  .btn-wa:hover { background: #1ebe5a; }
   .btn-scan:hover { background: var(--ok); filter: brightness(.95); }
   .thanks { background: var(--soft); border-radius: 12px; padding: 12px; margin-bottom: 14px; font-size: .95rem; }
   details { font-size: .85rem; color: var(--muted); margin-top: 8px; }
@@ -86,7 +93,8 @@
   <form id="form" novalidate autocomplete="on">
     <div class="scan">
       <button type="button" class="btn btn-scan" id="escanear">📷 Escanear mi cédula</button>
-      <p class="hint" id="scanHint">Toma una foto del código de barras de atrás de tu cédula amarilla y llenamos tu nombre, cédula y cumpleaños.</p>
+      <p class="hint" id="scanHint">Apunta la cámara al <b>código de barras de atrás</b> de tu cédula amarilla y llenamos tu nombre, cédula y cumpleaños.</p>
+      <button type="button" class="linkbtn" id="tomarFoto">o sube una foto del código de barras</button>
       <input type="file" id="foto" accept="image/*" capture="environment" hidden>
     </div>
     <div class="field" data-f="cedula">
@@ -103,14 +111,25 @@
 
     <div class="field" data-f="telefono">
       <label for="telefono">Celular <span class="hint">(WhatsApp)</span></label>
-      <input id="telefono" name="telefono" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="300 123 4567" maxlength="12" required>
+      <input id="telefono" name="telefono" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="300 123 4567" maxlength="20" required>
       <div class="err">Escribe un celular de 10 números que empiece por 3.</div>
     </div>
 
     <div class="field" data-f="cumpleanos">
-      <label for="cumpleanos">Cumpleaños <span class="hint">(día / mes / año)</span></label>
-      <input id="cumpleanos" name="cumpleanos" inputmode="numeric" autocomplete="bday" placeholder="DD/MM/AAAA" maxlength="10" required>
-      <div class="err">Escribe una fecha válida, por ejemplo 17/02/1990. Debes ser mayor de edad.</div>
+      <label for="dia">Cumpleaños</label>
+      <div class="fecha">
+        <input id="dia" name="bday-day" inputmode="numeric" autocomplete="bday-day" placeholder="Día" maxlength="2" aria-label="Día">
+        <select id="mes" name="bday-month" autocomplete="bday-month" aria-label="Mes">
+          <option value="">Mes</option>
+          <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
+          <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
+          <option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option>
+          <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+        </select>
+        <input id="anio" class="anio" name="bday-year" inputmode="numeric" autocomplete="bday-year" placeholder="Año" maxlength="4" aria-label="Año">
+      </div>
+      <input id="cumpleanos" type="hidden">
+      <div class="err">Escribe día, mes y año válidos. Debes ser mayor de edad.</div>
     </div>
 
     <div class="field" data-f="direccion">
@@ -120,10 +139,11 @@
     </div>
 
     <div class="field" data-f="puesto">
-      <label for="puesto">Puesto de votación <span class="hint">(si no lo sabes, déjalo vacío)</span></label>
+      <label for="puesto">Puesto de votación <span class="hint">(si no lo sabes, consúltalo abajo o déjalo vacío)</span></label>
       <input id="puesto" name="puesto" placeholder="Ej: Colegio San José">
-      <div class="hint" id="puestoHint" style="margin-top:6px">No te preocupes si no lo sabes: nosotros lo consultamos por ti con tu cédula.</div>
-      <button type="button" class="btn btn-sec" id="consultar" hidden>¿No sabes tu puesto? Consúltalo aquí</button>
+      <button type="button" class="btn btn-wa btn-sec" id="consultarWa" hidden>Consultar mi puesto por WhatsApp (Registraduría)</button>
+      <div class="hint" id="puestoHint" style="margin-top:6px" hidden></div>
+      <button type="button" class="btn btn-sec" id="consultar" hidden>Consultar mi puesto en la página de la Registraduría</button>
     </div>
 
     <div class="field" data-f="mesa">
